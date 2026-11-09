@@ -42,9 +42,9 @@ pub async fn fetch(
     policy: RetryPolicy,
     start: Start,
 ) -> Result<Fetched, Failed> {
-    let source = Source::parse(url);
-    let url = redacted(url);
-    let source = source.map_err(|error| Failed::of(&url, &Rejected::fatal(error), 1))?;
+    let shown = redacted(url);
+    let source =
+        Source::parse(url).map_err(|error| Failed::of(&shown, &Rejected::fatal(error), 1))?;
     let mut backoff = policy.backoff();
     let made = AtomicU32::new(0);
     if let Start::After(failed) = start {
@@ -73,12 +73,12 @@ pub async fn fetch(
                 "LiteLLM: model cost map fetch attempt {}/{} failed ({}); retrying in {:.1}s",
                 made.load(Ordering::Relaxed),
                 policy.max_attempts,
-                reason(&url, &rejected.cause),
+                reason(&shown, &rejected.cause),
                 wait.as_secs_f64(),
             );
         })
         .await
-        .map_err(|rejected| Failed::of(&url, &rejected, made.load(Ordering::Relaxed)))
+        .map_err(|rejected| Failed::of(&shown, &rejected, made.load(Ordering::Relaxed)))
 }
 
 impl Failed {
